@@ -75,50 +75,7 @@ ax.add_feature(cfeature.LAND)
 # pos = posicao que tal latitude ocupa no dado .nc (180W = -180 = file_1['longitude'][0])
 # variação de 10 graus = 40 posições
 # np.array pra colocar a densidade linha senão dá error: AttributeError: 'Variable' object has no attribute 'ravel'
-'''
-for i in range(len(file_1['time'])):
-    u_comp = file_1.variables['u'][i,2,300:641,300:641]
-    v_comp = file_1.variables['v'][i,2,300:641,300:641]
-    t = file_1.variables['t'][i,2,300:641,300:641]-273.15
-    pressao = file_2.variables['msl'][i,300:641,300:641]/100
-    adv_temp = mg.hadv(u_comp, v_comp, t, lats, lons)*1000
-    
-    # pnmm
-    vmin3 = 960
-    vmax3 = 1028
-    data_min3 = vmin3
-    data_max3 = vmax3
-    interval3 = 2
-    levels3 = np.arange(data_min3,data_max3,interval3)
-    
-    # adv temperatura
-    vmin4= -1.7
-    vmax4= 1.7
-    data_min4 = vmin4
-    data_max4 = vmax4
-    interval4 = 0.2
-    levels4 = np.arange(data_min4,data_max4,interval4)
-    
-    # plot adv temperatura em 850 hPa e pnmm
-    img3 = ax.contourf(lons,lats, adv_temp, vmin=vmin4, vmax=vmax4, cmap='seismic', levels = levels4)
-    img4 = ax.contour(lons, lats, pressao, colors='black', linewidths=0.8, levels=levels3)
-    
-    
-    # adiciona legenda 
-    plt.colorbar(img3, label = 'Adv de temperatura (°C)', orientation = 'vertical', pad=0.05, fraction=0.05)
-    
-    # Getting the file time and date
-    add_seconds = int(file_1.variables['time'][i])
-    date = datetime(1900,1,1,0) + timedelta(hours=add_seconds)
-    date_formatted = date.strftime('%Y-%m-%d %H')
-    	
-    # Add a title
-    plt.title('Adv. de temperatura', fontweight='bold', fontsize=20, loc='left')
-    plt.title(f'{date_formatted}', fontsize=15, loc='right')
-    #----------------------------------------------------------------------------------------------------------- 
-    # Salva imagem
-    plt.savefig(f'adv_temp {date_formatted}.png')
-'''
+
 #12 a 22
 i= 22
 
