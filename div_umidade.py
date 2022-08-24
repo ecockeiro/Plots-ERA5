@@ -145,7 +145,7 @@ for i in range(len(file_1.variables['time'])):
     ax.clabel(contorno, 
               inline = 1, 
               inline_spacing = 1, 
-              fontsize=8, 
+              fontsize=20, 
               fmt = '%3.0f', 
               colors= 'black'
               )
@@ -156,6 +156,8 @@ for i in range(len(file_1.variables['time'])):
                                   pad=0.04, 
                                   fraction=0.04
                                   )
+    font_size = 20 # Adjust as appropriate.
+    barra_de_cores.ax.tick_params(labelsize=font_size)
     
     # Getting the file time and date
     add_seconds = int(file_0.variables['time'][i])
@@ -171,7 +173,7 @@ for i in range(len(file_1.variables['time'])):
               )
     
     plt.title(f'{date_formatted}', 
-              fontsize=15, 
+              fontsize=20, 
               loc='right'
               )
     
