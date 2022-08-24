@@ -166,7 +166,7 @@ for i in range(len(file_1.variables['time'])):
     date_formatted = date.strftime('%Y-%m-%d %H')
     	
     # Add a title
-    plt.title('Pnmm/Geopotencial (m) - 500 hPa',
+    plt.title('Divergencia de umidade (1/s) - '+ str(level) +' hPa',
               fontweight='bold', 
               fontsize=35, 
               loc='left'
