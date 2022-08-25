@@ -6,24 +6,33 @@ Created on Tue Aug 23 19:04:43 2022
 @author: coqueiro
 """
 #importando bibliotecas
+from doctest import OutputChecker
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors # para a colorbar
 import metpy.calc as mpcalc
 from metpy.units import units
 import numpy as np
 import xarray as xr
 import cartopy.io.shapereader as shpreader # Import shapefiles
 from datetime import datetime, timedelta  # basicas datas e tipos de tempo
+import os
 
 #dataset
+
+input_dir = r'F:\Lucas\Conteudo\Fisica das nuvens e precipitacao\Dados'
+saida_dir = r'F:\Lucas\Conteudo\Fisica das nuvens e precipitacao\Figuras'
+continental_multi = os.path.join(input_dir, '24_02_19_continental_multi.nc')
+continental_single = os.path.join(input_dir, '24_02_19_continental_single.nc')
+
 file_0 = xr.open_dataset(
-    '/home/coqueiro/ufrj/fis_nuvens/dados/24_02_19_continental_multi.nc',
+    continental_multi,
     decode_times = False
     )
 
 file_1 = xr.open_dataset(
-    '/home/coqueiro/ufrj/fis_nuvens/dados/24_02_19_continental_multi.nc'
+    continental_multi
     ).metpy.parse_cf()
 
 file_1 = file_1.assign_coords(dict(
@@ -31,7 +40,7 @@ file_1 = file_1.assign_coords(dict(
     ).sortby('longitude')
 
 file_2 = xr.open_dataset(
-    '/home/coqueiro/ufrj/fis_nuvens/dados/24_02_19_continental_single.nc'
+    continental_single
     ).metpy.parse_cf()
 
 
@@ -48,31 +57,56 @@ lats = file_1.latitude.sel(latitude=lat_slice).values
 lons = file_1.longitude.sel(longitude=lon_slice).values
 
 #seta as variaveis
-level = 200
+level = 1000
+
+
+# CRIANDO O CMAP E NORM PARA A COLORBAR
+
+# intevalos da pnmm
+intervalo_min2 = 900
+intervalo_max2 = 1040
+interval_2 = 2              # de quanto em quanto voce quer que varie
+levels_2 = np.arange(intervalo_min2, intervalo_max2, interval_2)
+
+# intevalos da divergencia - umidade
+divq_min = -2.4
+divq_max = 2.4
+n_levs = 16 # numero de intervalos
+divlevs = np.round(np.linspace(divq_min, divq_max, n_levs), 1)
+
+# lista de cores, em ordem crescete. RGBA
+colors = ['mediumseagreen', 'mediumaquamarine', 'palegreen', 'white', 'wheat', 'gold', 'goldenrod']
+
+# cria um novo cmap a partir do pre-existente
+cmap = mcolors.LinearSegmentedColormap.from_list(
+    'Custom cmap', colors, divlevs.shape[0] - 1)
+cmap.set_over('darkgoldenrod')
+cmap.set_under("seagreen")
+
+# nromaliza com base nos intervalos
+norm = mcolors.BoundaryNorm(divlevs, cmap.N) # util para o PCOLORMESH, CONTOURF nao usa
+
+# variaveis repetidas em cada loop
+dx, dy = mpcalc.lat_lon_grid_deltas(lons, lats)
+
 
 for i in range(len(file_1.variables['time'])):
-    
-    geopotencial = file_1.z.metpy.sel(
-        time = file_1.time[i] , vertical=level, latitude=lat_slice, longitude=lon_slice).metpy.unit_array.squeeze()
-    
-    u = file_1.u.metpy.sel(
-        time = file_1.time[i] , vertical=level, latitude=lat_slice, longitude=lon_slice).metpy.unit_array.squeeze()
-    
-    v = file_1.v.metpy.sel(
-        time = file_1.time[i] , vertical=level, latitude=lat_slice, longitude=lon_slice).metpy.unit_array.squeeze()
-    q = file_1.q.metpy.sel(
-        time = file_1.time[i] , vertical=level, latitude=lat_slice, longitude=lon_slice).metpy.unit_array.squeeze()
-    
-    pnmm = file_2.msl.metpy.sel(
-        time = file_1.time[i] , latitude=lat_slice, longitude=lon_slice).metpy.unit_array.squeeze()* 0.01 * units.hPa/units.Pa
-    
-    
-    dx, dy = mpcalc.lat_lon_grid_deltas(lons, lats)
+    args = dict(
+        time = file_1.time[i] ,
+        vertical=level,
+        latitude=lat_slice,
+        longitude=lon_slice
+    )
+    geopotencial = file_1.z.metpy.sel(**args).metpy.unit_array.squeeze()
+    u = file_1.u.metpy.sel(**args).metpy.unit_array.squeeze()
+    v = file_1.v.metpy.sel(**args).metpy.unit_array.squeeze()
+    q = file_1.q.metpy.sel(**args).metpy.unit_array.squeeze()
+
+    del args["vertical"]
+    pnmm = file_2.msl.metpy.sel(**args).metpy.unit_array.squeeze()* 0.01 * units.hPa/units.Pa
     
     divergencia = mpcalc.divergence(u, v, dx=dx, dy=dy, x_dim=- 1, y_dim=- 2)
-    divergencia_umidade = divergencia*q*10**9
-    
-    vorticidade = mpcalc.vorticity(u, v, dx=dx, dy=dy, x_dim=- 1, y_dim=- 2)
+    divergencia_umidade = divergencia * q * 1e6
     
     # escolha o tamanho do plot em polegadas (largura x altura)
     plt.figure(figsize=(25,25))
@@ -80,10 +114,9 @@ for i in range(len(file_1.variables['time'])):
     # usando a projeção da coordenada cilindrica equidistante 
     ax = plt.axes(projection=ccrs.PlateCarree())
     
-    
     shapefile = list(
         shpreader.Reader(
-        '/home/coqueiro/Downloads/br_unidades_da_federacao/BR_UF_2019.shp'
+        os.path.join(input_dir, 'BR_UF_2019.shp')
         ).geometries()
         )
     
@@ -109,18 +142,6 @@ for i in range(len(file_1.variables['time'])):
     gl.top_labels = False
     gl.right_labels = False
     
-    # intevalos da pnmm
-    intervalo_min2 = np.amin(np.array(pnmm))
-    intervalo_max2 = np.amax(np.array(pnmm))
-    interval_2 = 2              # de quanto em quanto voce quer que varie
-    levels_2 = np.arange(intervalo_min2, intervalo_max2, interval_2)
-    
-    # intevalos da divergencia - umidade
-    intervalo_min3 = np.amin(np.array(divergencia_umidade))
-    intervalo_max3 = np.amax(np.array(divergencia_umidade))
-    interval_3 = 2              # de quanto em quanto voce quer que varie
-    levels_3 = np.arange(intervalo_min3, intervalo_max3, interval_3)
-    
     # adiciona mascara de terra
     ax.add_feature(cfeature.LAND)
     
@@ -128,8 +149,8 @@ for i in range(len(file_1.variables['time'])):
     sombreado = ax.contourf(lons, 
                             lats, 
                             divergencia_umidade, 
-                            cmap = 'Greens', 
-                            levels = levels_3, 
+                            cmap = cmap, 
+                            levels = divlevs, 
                             extend = 'both'
                             )
     
@@ -158,6 +179,7 @@ for i in range(len(file_1.variables['time'])):
                                   )
     font_size = 20 # Adjust as appropriate.
     barra_de_cores.ax.tick_params(labelsize=font_size)
+    barra_de_cores.ax.set_xticks(divlevs)
     
     # Getting the file time and date
     add_seconds = int(file_0.variables['time'][i])
@@ -166,7 +188,7 @@ for i in range(len(file_1.variables['time'])):
     date_formatted = date.strftime('%Y-%m-%d %H')
     	
     # Add a title
-    plt.title('Divergencia de umidade (1/s) - '+ str(level) +' hPa',
+    plt.title('Divergencia de umidade (1/s)*10^6 - '+ str(level) +' hPa',
               fontweight='bold', 
               fontsize=35, 
               loc='left'
@@ -180,4 +202,6 @@ for i in range(len(file_1.variables['time'])):
     
     #--------------------------------------------------------------------------
     # Salva imagem
-    plt.savefig(f'div_umi {date_formatted}.png', bbox_inches='tight')
+    fname = f'div_umi {date_formatted}.png'
+    plt.savefig(os.path.join(saida_dir, fname), bbox_inches='tight')
+    plt.close()

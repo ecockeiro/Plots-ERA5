@@ -9,7 +9,7 @@ Created on Sat Jun 11 23:14:33 2022
 from netCDF4 import Dataset  # ler e escreve netcdf ## uma merda essa biblioteca usa xarray mesmo ##
 import xarray as xr # ler netCDF e muito mais <3
 import matplotlib.pyplot as plt  # biblioteca de plots
-import matplotlib.colors                  # Matplotlib colors  
+import matplotlib.colors as mcolors                  # Matplotlib colors  
 from datetime import datetime, timedelta  # basicas datas e tipos de tempo
 import cartopy, cartopy.crs as ccrs  # plot mapas
 import cartopy.feature as cfeature  # operacao de desenho em imagens
@@ -87,15 +87,32 @@ gl.right_labels = False
 
 
 #------------------------------------------------------------------------------
-vmin= 2
-vmax= 18
-data_min = vmin
-data_max = vmax
-interval = 2
-levels = np.arange(data_min,data_max,interval)
+# define os intervalos da legenda
+clevs = np.array([2, 4, 6, 8, 10, 12, 14, 16, 18])
+
+# lista de cores, em ordem crescete. RGBA
+colors = np.array([ # (R, G, B, A)
+    [242, 98, 0, 255],
+    [249, 155, 77, 255],
+    [254, 217, 118, 255],
+    [255, 247, 188, 255],
+    [190, 220, 230, 255],
+    [156, 194, 255, 255],
+    [59, 118, 255, 255],
+    [0, 77, 182, 255]
+]) / 255 # divide por 255
+
+# cria um novo cmap a partir do pre-existente
+cmap = mcolors.LinearSegmentedColormap.from_list(
+    'Custom cmap', colors, clevs.shape[0] - 1)
+cmap.set_over(np.array([0, 37, 89, 255])/255)
+cmap.set_under('white')
+
+# nromaliza com base nos intervalos
+norm = mcolors.BoundaryNorm(clevs, cmap.N)
 
 # corrente de jato
-img = plt.contourf(lons,lats, q, vmin= vmin, vmax=vmax, cmap='RdYlBu', levels = levels, extend='both')
+img = plt.contourf(lons,lats, q, cmap = cmap, levels = clevs, extend='both')
 img2 = ax.contour(lons, lats, q, colors='white', linewidths=0.3,  transform=ccrs.PlateCarree())
 ax.streamplot(lons, lats, u_comp, v_comp, density=[6,6], linewidth=1.5, color='black', transform=ccrs.PlateCarree())
 
