@@ -30,15 +30,15 @@ from metpy.interpolate import cross_section
 # We use MetPy's CF parsing to get the data ready for use, and squeeze down the size-one time
 # dimension.
 
-data = xr.open_dataset('/home/coqueiro/ufrj/micro/multi_bomba_vert_28_12z.nc')
+data = xr.open_dataset('/home/coqueiro/ufrj/fis_nuvens/dados/fdn_multi_hora_18.nc')
 data = data.metpy.parse_cf().squeeze()
 print(data)
 
 ##############################
 # Define start and end points:
 
-start = (-55., -60.0)
-end = (-55., -20.0)
+start = (-27., -56.)
+end = (-38., -37.)
 
 ##############################
 # Get the cross section, and convert lat/lon to supplementary coordinates:
@@ -89,7 +89,7 @@ theta_contour.clabel(theta_contour.levels[1::2], fontsize=8, colors='k', inline=
 
 # Plot winds using the axes interface directly, with some custom indexing to make the barbs
 # less crowded
-wind_slc_vert = list(range(0, 19, 2))
+wind_slc_vert = list(range(0, 4, 1))
 wind_slc_horz = slice(5, 100, 5)
 ax.barbs(cross['longitude'][wind_slc_horz], cross['level'][wind_slc_vert],
          cross['t_wind'][wind_slc_vert, wind_slc_horz],
@@ -130,8 +130,4 @@ ax.set_xlabel('Longitude (degrees east)')
 rh_colorbar.set_label('Relative Humidity (dimensionless)')
 
 plt.show()
-
-##############################
-# Note: The x-axis can display any variable that is the same length as the
-# plotted variables, including latitude. Additionally, arguments can be provided
-# to ``ax.set_xticklabels`` to label lat/lon pairs, similar to the default NCL output.
+#plt.savefig(f'div_umi {date_formatted}.png', bbox_inches='tight')
