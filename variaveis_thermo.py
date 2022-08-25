@@ -30,25 +30,15 @@ import metpy.calc as mpcalc
 from metpy.cbook import get_test_data
 from metpy.interpolate import cross_section
 
-##############################
-# **Getting the data**
-#
-# This example uses [NARR reanalysis data](
-# https://www.ncei.noaa.gov/products/weather-climate-models/north-american-regional)
-# for 18 UTC 04 April 1987 from NCEI.
-#
-# We use MetPy's CF parsing to get the data ready for use, and squeeze down the size-one time
-# dimension.
-
-data = xr.open_dataset('/home/coqueiro/ufrj/micro/multi_bomba_28_12z.nc')
+data = xr.open_dataset('/home/coqueiro/ufrj/fis_nuvens/dados/cross-section/24_02_19_continental_multi_hora_18.nc')
 data = data.metpy.parse_cf().squeeze()
 print(data)
 
 ##############################
 # Define start and end points:
 
-start = (-55., -60.0)
-end = (-55., -20.0)
+start = (-27., -55.25)
+end = (-38., -52.25)
 
 ##############################
 # Get the cross section, and convert lat/lon to supplementary coordinates:
@@ -60,23 +50,43 @@ print(cross)
 # For this example, we will be plotting potential temperature, relative humidity, and
 # tangential/normal winds. And so, we need to calculate those, and add them to the dataset:
 
-cross['Potential_temperature'] = mpcalc.potential_temperature(
-    cross['level'],
-    cross['t']
-)
 cross['Relative_humidity'] = mpcalc.relative_humidity_from_specific_humidity(
     cross['level'],
     cross['t'],
     cross['q']
 )
+    
+cross['mixing_ratio'] = mpcalc.mixing_ratio_from_relative_humidity(
+    cross['level'], 
+    cross['t'], 
+    cross['Relative_humidity']
+)    
+    
+ 
+cross['vapor_pressure'] = mpcalc.vapor_pressure(
+    cross['level'],
+    cross['mixing_ratio'])
+
+cross['dewpoint'] = mpcalc.dewpoint(cross['vapor_pressure'])
+
+cross['Potential_temperature'] = mpcalc.potential_temperature(
+    cross['level'],
+    cross['t']
+)
+
+cross['Potential_temperature_equivalent'] = mpcalc.equivalent_potential_temperature(
+    cross['level'],
+    cross['t'],
+    cross['dewpoint']
+)
+
 cross['u_wind'] = cross['u'].metpy.convert_units('knots')
 cross['v_wind'] = cross['v'].metpy.convert_units('knots')
 cross['t_wind'], cross['n_wind'] = mpcalc.cross_section_components(
     cross['u_wind'],
     cross['v_wind']
 )
-cross['razao_mistura'] = mpcalc.mixing_ratio_from_relative_humidity(
-    cross['level'], cross['t'], cross['Relative_humidity'])
+
 
 cross['estabilidade_estatica'] = mpcalc.static_stability(cross['level'], cross['t'], vertical_dim=0)
 
@@ -90,13 +100,13 @@ fig = plt.figure(1, figsize=(16., 9.))
 ax = plt.axes()
 
 # Plot RH using contourf
-rh_contour = ax.contourf(cross['longitude'], cross['level'], cross['conteudo_gelo']
+rh_contour = ax.contourf(cross['latitude'], cross['level'], cross['Relative_humidity']
                           , cmap='YlGnBu')
 
 rh_colorbar = fig.colorbar(rh_contour)
 
 # Plot potential temperature using contour, with some custom labeling
-theta_contour = ax.contour(cross['longitude'], cross['level'], cross['Potential_temperature'],
+theta_contour = ax.contour(cross['latitude'], cross['level'], cross['Potential_temperature_equivalent'],
                            levels=np.arange(250, 450, 5), colors='k', linewidths=2)
 theta_contour.clabel(theta_contour.levels[1::2], fontsize=8, colors='k', inline=1,
                      inline_spacing=8, fmt='%i', rightside_up=True, use_clabeltext=True)
@@ -105,7 +115,7 @@ theta_contour.clabel(theta_contour.levels[1::2], fontsize=8, colors='k', inline=
 # less crowded
 wind_slc_vert = list(range(0, 27, 2))
 wind_slc_horz = slice(5, 100, 5)
-ax.barbs(cross['longitude'][wind_slc_horz], cross['level'][wind_slc_vert],
+ax.barbs(cross['latitude'][wind_slc_horz], cross['level'][wind_slc_vert],
          cross['t_wind'][wind_slc_vert, wind_slc_horz],
          cross['n_wind'][wind_slc_vert, wind_slc_horz], color='k')
 
@@ -137,7 +147,7 @@ ax_inset.add_feature(cfeature.STATES.with_scale('50m'), edgecolor='k', alpha=0.2
 ax_inset.set_title('')
 ax.set_title(f'ERA5 Cross-Section \u2013 {start} to {end} \u2013 '
              f'Valid: {cross["time"].dt.strftime("%Y-%m-%d %H:%MZ").item()}\n'
-             'Potential Temperature (K), Tangential/Normal Winds (knots), Relative Humidity '
+             'Potential Temperature Equivalent (K), Tangential/Normal Winds (knots), Relative Humidity '
              '(dimensionless)\nInset: Cross-Section Path and 500 hPa Geopotential Height')
 ax.set_ylabel('Pressure (hPa)')
 ax.set_xlabel('Longitude (degrees east)')
@@ -145,7 +155,3 @@ rh_colorbar.set_label('Relative Humidity (dimensionless)')
 
 plt.show()
 
-##############################
-# Note: The x-axis can display any variable that is the same length as the
-# plotted variables, including latitude. Additionally, arguments can be provided
-# to ``ax.set_xticklabels`` to label lat/lon pairs, similar to the default NCL output.
