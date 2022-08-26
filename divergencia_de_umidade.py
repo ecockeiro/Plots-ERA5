@@ -25,14 +25,16 @@ input_dir = r'F:\Lucas\Conteudo\Fisica das nuvens e precipitacao\Dados'
 saida_dir = r'F:\Lucas\Conteudo\Fisica das nuvens e precipitacao\Figuras'
 continental_multi = os.path.join(input_dir, '24_02_19_continental_multi.nc')
 continental_single = os.path.join(input_dir, '24_02_19_continental_single.nc')
+oceanico_multi = os.path.join(input_dir, '01_07_19_oceanico_multi.nc')
+oceanico_single = os.path.join(input_dir, '01_07_19_oceanico_single.nc')
 
 file_0 = xr.open_dataset(
-    continental_multi,
+    oceanico_multi,
     decode_times = False
     )
 
 file_1 = xr.open_dataset(
-    continental_multi
+    oceanico_multi
     ).metpy.parse_cf()
 
 file_1 = file_1.assign_coords(dict(
@@ -40,7 +42,7 @@ file_1 = file_1.assign_coords(dict(
     ).sortby('longitude')
 
 file_2 = xr.open_dataset(
-    continental_single
+    oceanico_single
     ).metpy.parse_cf()
 
 
